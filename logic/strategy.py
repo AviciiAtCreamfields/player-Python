@@ -70,8 +70,8 @@ def get_enemy_values(otherBases: list[Base], config: GameConfig):
 
     for targetBase in otherBases:
         enemyUid.append(targetBase.uid)
-        enemyGrowthRate.append(config.base_levels[targetBase.level].spawn_rate)
-        enemyMaxPopulation.append(config.base_levels[targetBase.level].max_population)
+        enemyGrowthRate.append(config.base_levels[targetBase.level - 1].spawn_rate)
+        enemyMaxPopulation.append(config.base_levels[targetBase.level - 1].max_population)
         enemyPopulation.append(targetBase.population)
 
     data["index"] = enemyUid
@@ -152,10 +152,10 @@ def iterate_bases(otherBases: list[Base], ourBases: list[Base], config: GameConf
             else:
                 if ourBase.level < max_level:
                     # Upgrade ally base
-                    if ourBase.population > (config.base_levels[ourBase.level].max_population * keep_population_during_upgrade):
+                    if ourBase.population > (config.base_levels[ourBase.level - 1].max_population * keep_population_during_upgrade):
                         # check if we need less bits then available
-                        bits_until_upgrade = config.base_levels[ourBase.level].upgrade_cost - ourBase.units_until_upgrade
-                        bits_to_upgrade = min([bits_until_upgrade, ourBase.population - (config.base_levels[ourBase.level].max_population * keep_population_during_upgrade)])
+                        bits_until_upgrade = config.base_levels[ourBase.level - 1].upgrade_cost - ourBase.units_until_upgrade
+                        bits_to_upgrade = min([bits_until_upgrade, ourBase.population - (config.base_levels[ourBase.level - 1].max_population * keep_population_during_upgrade)])
                         # upgrade
                         bestTargetBase.append(PlayerAction(ourBase.uid, ourBase.uid, bits_to_upgrade))
                 break

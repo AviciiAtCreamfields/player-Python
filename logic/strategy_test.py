@@ -2,6 +2,7 @@ import unittest
 import uuid
 
 import pandas as pd
+import random
 
 from logic.strategy import decide, euclid, get_base_level, filter_bases, survivors, defendersAtTime, add_population_of_enemy_at_start, get_base_distance, iterate_bases, get_enemy_values, get_enemy_distance, generate_base_costs, add_death_rate, add_gain_of_enemy
 from models.base import Base
@@ -16,6 +17,8 @@ from models.game_state import GameState
 from models.player_action import PlayerAction
 from models.position import Position
 from models.progress import Progress
+
+from timeit import default_timer as timer
 
 class TestStrategy(unittest.TestCase):
 
@@ -44,6 +47,61 @@ class TestStrategy(unittest.TestCase):
             max_population=80,
             upgrade_cost=30,
             spawn_rate=3
+        ),
+        BaseLevel(
+            max_population=100,
+            upgrade_cost=40,
+            spawn_rate=4
+        ),
+        BaseLevel(
+            max_population=200,
+            upgrade_cost=50,
+            spawn_rate=5
+        ),
+        BaseLevel(
+            max_population=300,
+            upgrade_cost=100,
+            spawn_rate=6
+        ),
+        BaseLevel(
+            max_population=400,
+            upgrade_cost=200,
+            spawn_rate=7
+        ),
+        BaseLevel(
+            max_population=500,
+            upgrade_cost=400,
+            spawn_rate=8
+        ),
+        BaseLevel(
+            max_population=600,
+            upgrade_cost=600,
+            spawn_rate=9
+        ),
+        BaseLevel(
+            max_population=700,
+            upgrade_cost=800,
+            spawn_rate=10
+        ),
+        BaseLevel(
+            max_population=800,
+            upgrade_cost=1000,
+            spawn_rate=15
+        ),
+        BaseLevel(
+            max_population=900,
+            upgrade_cost=1500,
+            spawn_rate=20
+        ),
+        BaseLevel(
+            max_population=1000,
+            upgrade_cost=2000,
+            spawn_rate=25
+        ),
+        BaseLevel(
+            max_population=2000,
+            upgrade_cost=3000,
+            spawn_rate=50
         )
     ]
 
@@ -139,8 +197,8 @@ class TestStrategy(unittest.TestCase):
 
     def test_get_enemy_values(self):
         other_bases = [
-            Base(uid=0, name='A', player=1, population=100, level=0, units_until_upgrade=1, position=Position(5, 0, 1)),
-            Base(uid=1, name='B', player=1, population=100, level=0, units_until_upgrade=1, position=Position(5, 0, 1))
+            Base(uid=0, name='A', player=1, population=100, level=1, units_until_upgrade=1, position=Position(5, 0, 1)),
+            Base(uid=1, name='B', player=1, population=100, level=14, units_until_upgrade=1, position=Position(5, 0, 1))
         ]
 
         enemy_values = get_enemy_values(other_bases, self.game_config)
@@ -148,12 +206,12 @@ class TestStrategy(unittest.TestCase):
         expected = {
             'index': [0, 1],
             'growth_rate': [
-                self.game_config.base_levels[other_bases[0].level].spawn_rate,
-                self.game_config.base_levels[other_bases[1].level].spawn_rate
+                self.game_config.base_levels[other_bases[0].level - 1].spawn_rate,
+                self.game_config.base_levels[other_bases[1].level - 1].spawn_rate
             ],
             'max_population': [
-                self.game_config.base_levels[other_bases[0].level].max_population,
-                self.game_config.base_levels[other_bases[1].level].max_population
+                self.game_config.base_levels[other_bases[0].level - 1].max_population,
+                self.game_config.base_levels[other_bases[1].level - 1].max_population
             ],
             'population': [100, 100]
         }
@@ -211,10 +269,41 @@ class TestStrategy(unittest.TestCase):
         self.assertEqual(data[6].values[0], 10)
         self.assertEqual(data[6].values[4], 1)
 
-    # def test_interate_bases(self):
-    #     our_bases = [self.our_bases[0]]
-    #     other_bases = [self.enemy_bases[0]]
-    #     iterate_bases(other_bases, our_bases, self.game_config)
+    def test_interate_bases(self):
+        start_size = 10
+        step_size = 100
+        end_size = 1000
+        max_level = 14
+        max_xyz = 100
+
+        our_bases = []
+        other_bases = []
+        for size in range(start_size, end_size + 1, step_size):
+            for i in range(0, size):
+                rand_lvl = random.randint(1, max_level)
+                our_bases.append(Base(uid=i,
+                                      name='Ally_' + str(i + 1),
+                                      player=self.our_player,
+                                      population=random.randint(1, self.base_levels[rand_lvl - 1].max_population),
+                                      level=rand_lvl,
+                                      units_until_upgrade=random.randint(0, self.base_levels[rand_lvl - 1].upgrade_cost - 1),
+                                      position=Position(random.randint(0, max_xyz), random.randint(0, max_xyz), random.randint(0, max_xyz))))
+                rand_lvl = random.randint(1, max_level)
+                other_bases.append(Base(uid=size + i,
+                                      name='Enemy_' + str(size + i + 1),
+                                      player=size + i,
+                                      population=random.randint(1, self.base_levels[rand_lvl - 1].max_population),
+                                      level=rand_lvl,
+                                      units_until_upgrade=random.randint(0, self.base_levels[rand_lvl - 1].upgrade_cost - 1),
+                                      position=Position(random.randint(0, max_xyz), random.randint(0, max_xyz), random.randint(0, max_xyz))))
+        
+            start = timer()
+            player_actions = iterate_bases(other_bases, our_bases, self.game_config)
+            end = timer()
+            self.assertTrue(isinstance(player_actions, list))
+            self.assertTrue(isinstance(player_actions[0], PlayerAction))
+            # iterate_bases must be fast (execution time less than 1 sec.)
+            self.assertLess(end - start, 1)
 
     def test_add_death_rate(self):
         test_dict = {
